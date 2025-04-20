@@ -21,14 +21,20 @@ jobs:
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
           subject: Approval Required for Deployment to EC2
-          body: |
-            A new commit has been pushed to the main branch and requires approval for deployment.
+          html_body: |
+            <p>A new commit has been pushed to the main branch and requires approval for deployment.</p>
             
-            Commit: ${{ github.event.after || github.event.pull_request.merge_commit_sha }}
-            Author: ${{ github.event.sender.login }}
+            <p><strong>Commit Message:</strong> ${{ github.event.head_commit.message }}</p>
+            <p><strong>Author:</strong> ${{ github.event.sender.login }}</p>
             
-            Please approve the deployment by clicking the following link:
-            ${{ github.server_url }}/${{ github.repository }}/actions/workflows/deploy.yml
+            <p>Please approve the deployment by clicking the button below:</p>
+            
+            <p>
+              <a href="${{ github.server_url }}/${{ github.repository }}/issues/${{ needs.create_approval_issue.outputs.issue_number }}" 
+                style="background-color: #4CAF50; color: white; padding: 10px 20px; text-align: center; text-decoration: none; display: inline-block; border-radius: 4px; font-weight: bold;">
+                Approve Deployment
+              </a>
+            </p>
           to: ${{ secrets.APPROVER_EMAIL }}
           from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
       
@@ -47,23 +53,7 @@ jobs:
     needs: request-approval
     runs-on: ubuntu-latest
     
-    steps:
-      - name: Send deployment notification
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.MAIL_SERVER }}
-          server_port: ${{ secrets.MAIL_PORT }}
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-          subject: Deployment to EC2 Started
-          body: |
-            The deployment to EC2 has been approved and started.
-            
-            Commit: ${{ github.event.after || github.event.pull_request.merge_commit_sha }}
-            Author: ${{ github.event.sender.login }}
-          to: ${{ secrets.APPROVER_EMAIL }}
-          from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
-          
+    steps:          
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
         with:
@@ -90,7 +80,7 @@ jobs:
           body: |
             The deployment to EC2 has been completed successfully.
             
-            Commit: ${{ github.event.after || github.event.pull_request.merge_commit_sha }}
+            Commit: ${{ github.event.head_commit.message }}
             Author: ${{ github.event.sender.login }}
           to: ${{ secrets.APPROVER_EMAIL }}
           from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
