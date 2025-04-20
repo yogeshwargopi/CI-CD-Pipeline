@@ -34,14 +34,25 @@ jobs:
           secret: ${{ secrets.GITHUB_TOKEN }}
           approvers: ${{ secrets.APPROVERS }}
           minimum-approvals: 1
-          issue-title: "Deployment Approval Needed"
+          issue-title: "Deployment to EC2 - Approval Required"
           issue-body: |
-            A new deployment to EC2 requires approval.
+            ### Deployment Approval Request
             
-            Event: ${{ github.event_name }}
-            Triggered by: ${{ github.actor }}
+            **Environment:** EC2
+            **Branch:** ${{ github.ref_name }}
+            **Event:** ${{ github.event_name }}
+            **Triggered by:** ${{ github.actor }}
             
-            Please review and approve this deployment.
+            Please review the changes and approve this deployment by commenting with one of:
+            - "approved"
+            - "approve"
+            - "lgtm"
+            - "yes"
+            
+            To deny, comment with:
+            - "denied"
+            - "deny"
+            - "no"
 
       - name: SSH and deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
