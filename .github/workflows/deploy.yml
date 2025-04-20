@@ -1,0 +1,93 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    types: [ closed ]
+    branches: [ main ]
+
+jobs:
+  request-approval:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+    
+    steps:
+      - name: Send approval email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.MAIL_SERVER }}
+          server_port: ${{ secrets.MAIL_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: Approval Required for Deployment to EC2
+          body: |
+            A new commit has been pushed to the main branch and requires approval for deployment.
+            
+            Commit: ${{ github.event.after || github.event.pull_request.merge_commit_sha }}
+            Author: ${{ github.event.sender.login }}
+            
+            Please approve the deployment by clicking the following link:
+            ${{ github.server_url }}/${{ github.repository }}/actions/workflows/deploy.yml
+          to: ${{ secrets.APPROVER_EMAIL }}
+          from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
+      
+      - name: Wait for approval
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ secrets.GITHUB_TOKEN }}
+          approvers: ${{ secrets.APPROVERS }}
+          minimum-approvals: 1
+          issue-title: "Deployment to EC2 requires approval"
+          issue-body: "Please approve this deployment by adding a comment with 'approved' to proceed with deployment to EC2."
+          exclude-workflow-initiator-as-approver: false
+          timeout-minutes: 1440 # 24 hours
+
+  deploy:
+    needs: request-approval
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Send deployment notification
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.MAIL_SERVER }}
+          server_port: ${{ secrets.MAIL_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: Deployment to EC2 Started
+          body: |
+            The deployment to EC2 has been approved and started.
+            
+            Commit: ${{ github.event.after || github.event.pull_request.merge_commit_sha }}
+            Author: ${{ github.event.sender.login }}
+          to: ${{ secrets.APPROVER_EMAIL }}
+          from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
+          
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ${{ secrets.PROJECT_PATH }}
+            git fetch
+            git pull origin main
+            docker compose up -d --build
+            
+      - name: Send deployment completion notification
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.MAIL_SERVER }}
+          server_port: ${{ secrets.MAIL_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: Deployment to EC2 Completed
+          body: |
+            The deployment to EC2 has been completed successfully.
+            
+            Commit: ${{ github.event.after || github.event.pull_request.merge_commit_sha }}
+            Author: ${{ github.event.sender.login }}
+          to: ${{ secrets.APPROVER_EMAIL }}
+          from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
