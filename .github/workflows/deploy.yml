@@ -71,10 +71,13 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd ${{ secrets.PROJECT_PATH }}
-            git fetch
-            git pull origin main
-            docker compose up -d --build
+            echo "Starting deployment..."
+            cd "${{ secrets.PROJECT_PATH }}" || exit 1
+            echo "Changed to project directory"
+            git fetch || exit 1
+            git pull origin main || exit 1
+            docker compose up -d --build || exit 1
+            echo "Deployment completed successfully"
             
       - name: Send deployment completion notification
         uses: dawidd6/action-send-mail@v3
