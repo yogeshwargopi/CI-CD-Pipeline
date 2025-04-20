@@ -27,19 +27,21 @@ jobs:
           to: ${{ secrets.APPROVER_EMAIL }}
           from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
 
-      - name: Wait for Manual Approval
-        uses: hmarr/auto-approve-action@v3
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Manual approval step
         uses: trstringer/manual-approval@v1
+        timeout-minutes: 1440  # 24 hour timeout
         with:
           secret: ${{ secrets.GITHUB_TOKEN }}
           approvers: ${{ secrets.APPROVERS }}
           minimum-approvals: 1
           issue-title: "Deployment Approval Needed"
-          issue-body: "Please approve this deployment to EC2."
+          issue-body: |
+            A new deployment to EC2 requires approval.
+            
+            Event: ${{ github.event_name }}
+            Triggered by: ${{ github.actor }}
+            
+            Please review and approve this deployment.
 
       - name: SSH and deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
