@@ -16,7 +16,7 @@ jobs:
       - name: Send approval email
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: ${{ secrets.APPROVAL_PAT }}
+          server_address: ${{ secrets.MAIL_SERVER }}
           server_port: ${{ secrets.MAIL_PORT }}
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
@@ -35,7 +35,7 @@ jobs:
       - name: Wait for approval
         uses: trstringer/manual-approval@v1
         with:
-          secret: ${{ secrets.GITHUB_TOKEN }}
+          secret: ${{ secrets.APPROVAL_PAT }}
           approvers: ${{ secrets.APPROVERS }}
           minimum-approvals: 1
           issue-title: "Deployment to EC2 requires approval"
